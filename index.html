@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CubeClash - Speedcube Arena</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti for Victories -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            arena: {
+              900: '#0a0d14',
+              800: '#111726',
+              700: '#1b233a',
+              accent: '#06b6d4',
+              neon: '#10b981',
+              warning: '#f59e0b',
+              danger: '#ef4444'
+            }
+          },
+          fontFamily: {
+            mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    /* Custom speedcubing timer fonts and pulse glow */
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    
+    .timer-font {
+      font-family: 'Chakra Petch', monospace;
+    }
+    
+    .glow-cyan {
+      box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+    }
+    .glow-green {
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
+    }
+    .glow-red {
+      box-shadow: 0 0 25px rgba(239, 68, 68, 0.3);
+    }
+
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0d14;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1f293d;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #374151;
+    }
+  </style>
+</head>
+<body class="bg-arena-900 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="border-b border-slate-800 bg-arena-800/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTab('lobby')">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-cyan-500/20">
+          <i data-lucide="box" class="w-6 h-6 stroke-[2.5]"></i>
+        </div>
+        <div>
+          <span class="text-xl font-extrabold tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">CubeClash</span>
+          <span class="text-[10px] block uppercase tracking-widest text-slate-400 font-semibold">Ranked Ao5 Arena</span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (Only when logged in) -->
+      <nav id="nav-tabs" class="hidden md:flex items-center space-x-1 bg-arena-900/80 p-1.5 rounded-xl border border-slate-800">
+        <button onclick="navigateTab('lobby')" id="nav-btn-lobby" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-cyan-400 bg-slate-800 shadow-sm">
+          <i data-lucide="layout-grid" class="w-4 h-4"></i> Lobby
+        </button>
+        <button onclick="navigateTab('arena')" id="nav-btn-arena" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+          <i data-lucide="swords" class="w-4 h-4"></i> Active Match
+        </button>
+        <button onclick="navigateTab('stats')" id="nav-btn-stats" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+          <i data-lucide="line-chart" class="w-4 h-4"></i> Rating & Stats
+        </button>
+        <button onclick="navigateTab('profile')" id="nav-btn-profile" class="px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+          <i data-lucide="user-cog" class="w-4 h-4"></i> Profile
+        </button>
+      </nav>
+
+      <!-- User Session Area -->
+      <div id="user-header-profile" class="flex items-center space-x-3">
+        <!-- Injected via JavaScript -->
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col justify-center">
+
+    <!-- VIEW 1: AUTHENTICATION MODAL/CARD -->
+    <section id="view-auth" class="w-full max-w-md mx-auto my-auto py-8">
+      <div class="bg-arena-800/90 border border-slate-700/70 rounded-3xl p-8 shadow-2xl backdrop-blur relative overflow-hidden text-center">
+        <div class="absolute -top-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="inline-flex p-3.5 rounded-2xl bg-slate-900 border border-slate-700 mb-4 text-cyan-400">
+          <i data-lucide="box" class="w-8 h-8 stroke-[2.5]"></i>
+        </div>
+        <h2 id="auth-title" class="text-2xl font-black tracking-tight text-white">Sign In to CubeClash</h2>
+        <p id="auth-subtitle" class="text-xs text-slate-400 mt-2 mb-6">Enter your username and password to access ranked matchmaking</p>
+
+        <!-- Auth Form -->
+        <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4 text-left">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+            <div class="relative">
+              <input type="text" id="auth-username" required placeholder="e.g. speedcuber" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:border-cyan-400 focus:outline-none transition">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+            <div class="relative">
+              <input type="password" id="auth-password" required placeholder="••••••••" class="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white text-sm focus:border-cyan-400 focus:outline-none transition">
+            </div>
+          </div>
+
+          <button type="submit" id="auth-submit-btn" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 transform active:scale-[0.98]">
+            <i data-lucide="log-in" class="w-4 h-4"></i>
+            <span id="auth-btn-label">Sign In</span>
+          </button>
+        </form>
+
+        <div class="mt-5 flex items-center justify-between text-xs text-slate-400">
+          <span id="auth-toggle-prompt">Don't have an account?</span>
+          <button type="button" onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4">
+            Create Account
+          </button>
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-slate-700/60 text-[11px] text-slate-400 text-left space-y-1">
+          <p class="flex items-center gap-1.5 text-cyan-400">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin Login: <code class="bg-slate-900 px-1 py-0.5 rounded text-white">admin</code> / <code class="bg-slate-900 px-1 py-0.5 rounded text-white">adminpassword</code>
+          </p>
+          <p class="text-slate-500">Your solves, W/L record, and dynamic rating will be saved automatically.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: ONBOARDING SKILL TIER SELECTION (First Login) -->
+    <section id="view-onboarding" class="hidden max-w-xl mx-auto my-auto py-8 text-center">
+      <div class="bg-arena-800/90 border border-slate-700/80 rounded-2xl p-7 shadow-2xl backdrop-blur relative">
+        <div class="inline-flex p-3 rounded-2xl bg-cyan-950/50 text-cyan-400 border border-cyan-800/40 mb-3">
+          <i data-lucide="gauge" class="w-8 h-8"></i>
+        </div>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Select Your Baseline Skill Tier</h2>
+        <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+          Welcome to CubeClash! What is your typical 3x3 Average of 5 (Ao5)? We'll seed your starting rating and match you with worthy rivals.
+        </p>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 my-6">
+          <button onclick="selectInitialTier(8.5, 'Sub-10')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Master</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-10</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~8.5s Ao5</span>
+          </button>
+
+          <button onclick="selectInitialTier(16.5, 'Sub-20')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Expert</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-20</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~16.5s Ao5</span>
+          </button>
+
+          <button onclick="selectInitialTier(26.0, 'Sub-30')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Advanced</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-30</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~26.0s Ao5</span>
+          </button>
+
+          <button onclick="selectInitialTier(36.0, 'Sub-40')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Intermediate</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-40</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~36.0s Ao5</span>
+          </button>
+
+          <button onclick="selectInitialTier(46.0, 'Sub-50')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Apprentice</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-50</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~46.0s Ao5</span>
+          </button>
+
+          <button onclick="selectInitialTier(56.0, 'Sub-60+')" class="group p-4 bg-slate-900/90 hover:bg-cyan-950/40 border border-slate-700 hover:border-cyan-500 rounded-xl transition flex flex-col items-center">
+            <span class="text-xs uppercase tracking-wider text-slate-400 group-hover:text-cyan-400 font-semibold">Novice</span>
+            <span class="text-xl font-bold text-white mt-1">Sub-60+</span>
+            <span class="text-[11px] text-slate-500 mt-0.5">~56.0s Ao5</span>
+          </button>
+        </div>
+
+        <p class="text-xs text-slate-500">You can also calibrate anytime later from your profile or let match results adjust it automatically.</p>
+      </div>
+    </section>
+
+    <!-- VIEW: PERMANENT LOBBY TAB -->
+    <section id="view-lobby" class="hidden flex flex-col space-y-6 max-w-5xl mx-auto w-full">
+      <!-- Player Status Card -->
+      <div class="bg-gradient-to-r from-arena-800 via-slate-900 to-arena-800 border border-slate-700/80 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
+          <div class="flex items-center space-x-4">
+            <div id="lobby-avatar" class="w-20 h-20 rounded-2xl bg-cyan-950 border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 text-3xl font-extrabold shadow-inner">
+              <i data-lucide="award" class="w-10 h-10"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-3">
+                <h2 id="lobby-cuber-name" class="text-2xl font-black text-white tracking-wide">Cuber</h2>
+                <span id="lobby-tier-badge" class="px-3 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-xs font-bold uppercase tracking-wider">Sub-30</span>
+              </div>
+              <p id="lobby-rating-line" class="text-slate-400 text-sm mt-1">Current Rated Average: <span id="lobby-current-rating" class="font-mono font-bold text-cyan-400 text-base">26.00s</span></p>
+              <div id="lobby-stats-line" class="flex items-center gap-4 text-xs text-slate-500 mt-2 font-mono">
+                <span>Wins: <strong id="lobby-wins" class="text-emerald-400">0</strong></span>
+                <span>Losses: <strong id="lobby-losses" class="text-rose-400">0</strong></span>
+                <span>Best Ao5: <strong id="lobby-best-ao5" class="text-teal-300">--</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Launch Button -->
+          <button onclick="startNewMatch()" class="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center justify-center gap-3">
+            <i data-lucide="play" class="w-6 h-6 fill-current"></i>
+            <span>PLAY MATCH (AO5)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Matchmaking Options & Rules -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-arena-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 text-cyan-400 font-bold text-sm mb-2">
+              <i data-lucide="sliders" class="w-4 h-4"></i> Match Configuration
+            </div>
+            <p class="text-xs text-slate-400 mb-4">Toggle pre-solve inspection according to WCA regulations.</p>
+            <label class="flex items-center gap-3 p-3 bg-slate-900/80 rounded-xl border border-slate-800 cursor-pointer">
+              <input type="checkbox" id="inspection-toggle" checked class="w-4 h-4 text-cyan-500 bg-slate-800 border-slate-700 rounded focus:ring-0">
+              <span class="text-xs font-semibold text-slate-300 select-none">15-Second WCA Inspection</span>
+            </label>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-700/50 text-[11px] text-slate-500">
+            Hold spacebar or touch screen for 0.35s to arm timer.
+          </div>
+        </div>
+
+        <div class="bg-arena-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-2">
+              <i data-lucide="shield-check" class="w-4 h-4"></i> Opponent Match Selection
+            </div>
+            <div id="opponent-tier-choice-box" class="space-y-2">
+              <label class="text-[11px] text-slate-400 uppercase tracking-wider block font-semibold">Play With Tier:</label>
+              <select id="select-opponent-tier" onchange="handleMatchTierChange(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-mono outline-none focus:border-cyan-400">
+                <option value="AUTO">My Current Rating Tier (&plusmn;1.2s)</option>
+                <option value="Sub-10">Sub-10 (Master ~8.5s)</option>
+                <option value="Sub-20">Sub-20 (Expert ~16.5s)</option>
+                <option value="Sub-30">Sub-30 (Advanced ~26.0s)</option>
+                <option value="Sub-40">Sub-40 (Intermediate ~36.0s)</option>
+                <option value="Sub-50">Sub-50 (Apprentice ~46.0s)</option>
+                <option value="Sub-60+">Sub-60+ (Novice ~56.0s)</option>
+                <option value="RANDOM">Random Mystery Level</option>
+              </select>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-slate-700/50 flex items-center justify-between text-xs">
+            <span class="text-slate-400">Target Range:</span>
+            <span id="lobby-target-range" class="font-mono font-bold text-white">24.8s - 27.2s</span>
+          </div>
+        </div>
+
+        <div class="bg-arena-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg flex flex-col justify-between">
+          <div>
+            <div class="flex items-center gap-2 text-teal-400 font-bold text-sm mb-2">
+              <i data-lucide="activity" class="w-4 h-4"></i> Account Status
+            </div>
+            <div id="lobby-account-details" class="space-y-2 mt-2">
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Role:</span>
+                <span id="lobby-account-type" class="font-mono font-bold text-cyan-400">Cuber</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Best Single:</span>
+                <span id="lobby-best-single" class="font-mono font-bold text-emerald-400">--</span>
+              </div>
+              <div class="flex justify-between text-xs">
+                <span class="text-slate-400">Win Rate:</span>
+                <span id="lobby-winrate" class="font-mono font-bold text-teal-300">0%</span>
+              </div>
+            </div>
+          </div>
+          <button id="btn-lobby-progression-link" onclick="navigateTab('stats')" class="mt-4 pt-3 border-t border-slate-700/50 text-xs text-cyan-400 hover:text-cyan-300 font-semibold flex items-center justify-between w-full">
+            <span>View Full Progression Graph</span>
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: MATCH ARENA (The Core Speedcubing Battlefield) -->
+    <section id="view-arena" class="hidden flex flex-col h-full space-y-4">
+
+      <!-- PRE-MATCH QUEUE BANNER (When no active match) -->
+      <div id="matchmaking-panel" class="bg-arena-800 border border-slate-700/80 rounded-2xl p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-4 text-center sm:text-left">
+          <div class="w-12 h-12 rounded-xl bg-cyan-950 border border-cyan-800/50 flex items-center justify-center text-cyan-400 shrink-0">
+            <i data-lucide="flame" class="w-6 h-6 animate-pulse"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2 justify-center sm:justify-start">
+              Ready for a Speedcube Duel
+              <span id="user-tier-pill" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-cyan-900/60 text-cyan-300 border border-cyan-700/50">Sub-30</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">Your Rating Avg: <span id="user-display-rating" class="font-mono text-cyan-400 font-semibold">26.00s</span> | Official WCA Ao5 Format</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button id="btn-find-match" onclick="startNewMatch()" class="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 active:scale-95">
+            <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+            <span>Find Opponent & Solve</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ACTIVE MATCH DASHBOARD -->
+      <div id="active-match-container" class="hidden flex-1 flex flex-col gap-4">
+
+        <!-- Opponent VS User HUD Bar -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- User Card -->
+          <div class="bg-arena-800/90 border border-cyan-800/60 rounded-2xl p-4 flex items-center justify-between shadow-lg relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-cyan-400"></div>
+            <div class="flex items-center space-x-3 ml-2">
+              <div class="w-11 h-11 rounded-xl bg-cyan-900/40 border border-cyan-500/40 flex items-center justify-center font-bold text-cyan-400">
+                <i data-lucide="user" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span id="player-hud-name" class="font-bold text-white text-base">You</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-cyan-400 font-mono" id="player-hud-tag">Rating: 25.00s</span>
+                </div>
+                <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                  <span>Current Ao5:</span>
+                  <span id="player-current-ao5" class="font-mono font-bold text-white">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Solves summary pills -->
+            <div id="player-solve-pills" class="flex gap-1.5">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Opponent Card -->
+          <div class="bg-arena-800/90 border border-rose-800/50 rounded-2xl p-4 flex items-center justify-between shadow-lg relative overflow-hidden">
+            <div class="absolute right-0 top-0 bottom-0 w-1.5 bg-rose-500"></div>
+            <div class="flex items-center space-x-3">
+              <div class="w-11 h-11 rounded-xl bg-rose-950/50 border border-rose-600/40 flex items-center justify-center font-bold text-rose-400">
+                <i data-lucide="bot" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span id="opponent-hud-name" class="font-bold text-white text-base">Rival_Cuber</span>
+                  <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 text-rose-400 font-mono" id="opponent-hud-tag">Rating: 25.40s</span>
+                </div>
+                <div class="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                  <span>Current Ao5:</span>
+                  <span id="opponent-current-ao5" class="font-mono font-bold text-white">--</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Opponent Solves summary pills -->
+            <div id="opponent-solve-pills" class="flex gap-1.5 mr-2">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- SCRAMBLE BANNER -->
+        <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-4 text-center shadow-lg relative">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs uppercase tracking-widest text-slate-400 font-semibold flex items-center gap-1.5">
+              <i data-lucide="shuffle" class="w-3.5 h-3.5 text-cyan-400"></i>
+              WCA 3x3 Scramble #<span id="current-solve-index">1</span> / 5
+            </span>
+            <button onclick="generateNextSolveScramble()" class="text-xs text-slate-400 hover:text-cyan-400 transition flex items-center gap-1">
+              <i data-lucide="refresh-cw" class="w-3 h-3"></i> Re-roll
+            </button>
+          </div>
+          <div id="scramble-display" class="font-mono text-base sm:text-lg lg:text-xl font-medium tracking-wide text-cyan-200 py-1 px-3 break-words bg-slate-900/70 rounded-xl border border-slate-800 select-text">
+            R U R' U' F' D2 L B2 R2 U2 ...
+          </div>
+        </div>
+
+        <!-- SPEEDCUBING STACKMAT / INTERACTIVE TIMER PAD -->
+        <div id="timer-arena-card" class="flex-1 min-h-[300px] sm:min-h-[380px] bg-arena-800/60 border border-slate-700/80 rounded-3xl p-6 sm:p-10 flex flex-col items-center justify-center relative cursor-pointer select-none transition-all duration-200">
+          
+          <!-- Inspection Alert badge -->
+          <div id="inspection-state-banner" class="hidden mb-2 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-bold uppercase tracking-wider animate-pulse flex items-center gap-1.5">
+            <i data-lucide="timer" class="w-4 h-4"></i>
+            <span>Inspection Phase (Space / Tap to Start)</span>
+          </div>
+
+          <!-- Master Live Timer Display -->
+          <div class="relative py-2">
+            <div id="timer-display" class="timer-font text-6xl sm:text-8xl md:text-9xl font-extrabold tracking-tight text-white transition-colors">
+              00.00
+            </div>
+          </div>
+
+          <!-- Timer State Feedback Indicator -->
+          <div id="timer-prompt-text" class="text-xs sm:text-sm text-slate-400 mt-2 font-medium tracking-wide flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+            <i data-lucide="mouse-pointer" class="w-4 h-4 text-cyan-400"></i>
+            <span>Hold <strong class="text-white">SPACEBAR</strong> or <strong class="text-white">Touch/Hold Screen</strong> to Arm Timer</span>
+          </div>
+
+          <!-- Solve Step status indicator -->
+          <div class="mt-6 flex items-center gap-3">
+            <span class="text-xs text-slate-400 font-mono">Opponent Status:</span>
+            <span id="opponent-live-status" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-300 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Waiting for solve release
+            </span>
+          </div>
+        </div>
+
+        <!-- 5-Solve Progression Table -->
+        <div class="bg-arena-800/80 border border-slate-700/80 rounded-2xl p-4 overflow-x-auto">
+          <table class="w-full text-xs sm:text-sm text-left">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700/60 pb-2">
+                <th class="py-2 px-3 font-semibold">Solve</th>
+                <th class="py-2 px-3 font-semibold">Your Time</th>
+                <th class="py-2 px-3 font-semibold">Opponent Time</th>
+                <th class="py-2 px-3 font-semibold">Margin</th>
+                <th class="py-2 px-3 font-semibold">Round Winner</th>
+              </tr>
+            </thead>
+            <tbody id="round-history-body" class="divide-y divide-slate-800 font-mono">
+              <!-- Dynamically populated solves 1-5 -->
+              <tr><td colspan="5" class="py-3 px-3 text-center text-slate-500 font-sans">No solves logged yet for this match.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- MATCH RESULT MODAL / OVERLAY -->
+      <div id="match-results-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-arena-800 border border-slate-700 rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+          <div class="text-center">
+            <div id="result-icon-container" class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-lg">
+              🏆
+            </div>
+            <h2 id="result-headline" class="text-3xl font-extrabold text-white tracking-tight">VICTORY!</h2>
+            <p id="result-subtext" class="text-xs text-slate-400 mt-1">Ao5 WCA Official Rules Applied (Best & Worst Dropped)</p>
+          </div>
+
+          <!-- Ao5 Comparison Grid -->
+          <div class="grid grid-cols-2 gap-4 my-6">
+            <div class="bg-slate-900/90 border border-cyan-800/50 p-4 rounded-2xl text-center">
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-1">Your Ao5</span>
+              <span id="result-user-ao5" class="timer-font text-3xl font-extrabold text-cyan-400">19.42s</span>
+              <div class="text-[11px] text-slate-400 mt-2 space-y-0.5">
+                <p>Fastest: <span id="result-user-best" class="text-emerald-400 font-mono font-semibold">17.10</span> (Dropped)</p>
+                <p>Slowest: <span id="result-user-worst" class="text-rose-400 font-mono font-semibold">23.40</span> (Dropped)</p>
+              </div>
+            </div>
+
+            <div class="bg-slate-900/90 border border-rose-800/40 p-4 rounded-2xl text-center">
+              <span class="text-xs uppercase tracking-wider text-slate-400 font-bold block mb-1">Rival Ao5</span>
+              <span id="result-opponent-ao5" class="timer-font text-3xl font-extrabold text-rose-400">20.15s</span>
+              <div class="text-[11px] text-slate-400 mt-2 space-y-0.5">
+                <p>Fastest: <span id="result-opp-best" class="text-emerald-400 font-mono font-semibold">18.50</span> (Dropped)</p>
+                <p>Slowest: <span id="result-opp-worst" class="text-rose-400 font-mono font-semibold">24.20</span> (Dropped)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rating Adjustment Notice -->
+          <div class="bg-slate-900/90 border border-slate-700/80 rounded-2xl p-4 text-center mb-6">
+            <span class="text-xs text-slate-400 uppercase tracking-widest font-semibold block mb-1">Dynamic Rating Update</span>
+            <div class="flex items-center justify-center gap-3">
+              <span id="rating-prev" class="font-mono text-slate-400 text-sm">25.00s</span>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-cyan-400"></i>
+              <span id="rating-new" class="font-mono text-lg font-bold text-emerald-400">23.85s</span>
+              <span id="rating-delta-pill" class="text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono font-bold">-1.15s 🔥</span>
+            </div>
+            <p class="text-[11px] text-cyan-400/80 mt-2">Next opponent will be matched against your new rating of <span id="rating-next-match-target" class="font-mono font-bold text-cyan-300">--</span></p>
+          </div>
+
+          <!-- Post-Match Actions -->
+          <div class="space-y-2.5">
+            <button id="btn-next-match-primary" onclick="closeMatchResultAndRematch()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-black text-base rounded-2xl shadow-xl shadow-emerald-500/25 transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-3 group">
+              <i data-lucide="play" class="w-5 h-5 fill-current transition-transform group-hover:scale-110"></i>
+              <span>START NEXT MATCH</span>
+              <span class="text-[10px] bg-slate-950/30 text-slate-950 font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider hidden sm:inline">Press Enter</span>
+            </button>
+            <div class="flex gap-2">
+              <button onclick="navigateTab('stats'); closeMatchModal();" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5">
+                <i data-lucide="line-chart" class="w-3.5 h-3.5 text-cyan-400"></i>
+                <span>Review Rating & Stats</span>
+              </button>
+              <button onclick="closeMatchModal(); navigateTab('lobby');" class="flex-1 px-4 py-2.5 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-800/80 text-cyan-300 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5">
+                <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                <span>Back to Lobby</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 4: STATS & HISTORICAL PROGRESSION -->
+    <section id="view-stats" class="hidden flex flex-col space-y-6">
+      
+      <!-- Top Persistent Action Bar inside Stats -->
+      <div class="bg-arena-800/90 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+        <div class="text-xs text-slate-400 text-center sm:text-left">
+          Ready to jump back into action? Your matches and ratings update immediately.
+        </div>
+        <button onclick="startNewMatch()" class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-bold rounded-xl shadow-md text-xs flex items-center gap-2">
+          <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+          <span>Play Match Now</span>
+        </button>
+      </div>
+
+      <!-- Key Stat Metrics Counters -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Current Rating</div>
+          <div id="stat-current-rating" class="timer-font text-3xl font-extrabold text-cyan-400 mt-2">--</div>
+          <div class="text-[11px] text-slate-500 mt-1">Average expected solve time</div>
+        </div>
+
+        <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Personal Best Single</div>
+          <div id="stat-pb-single" class="timer-font text-3xl font-extrabold text-emerald-400 mt-2">--</div>
+          <div class="text-[11px] text-slate-500 mt-1">Fastest single solve logged</div>
+        </div>
+
+        <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Personal Best Ao5</div>
+          <div id="stat-pb-ao5" class="timer-font text-3xl font-extrabold text-teal-400 mt-2">--</div>
+          <div class="text-[11px] text-slate-500 mt-1">Fastest official match Ao5</div>
+        </div>
+
+        <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">Arena Record (W-L)</div>
+          <div id="stat-win-loss" class="timer-font text-3xl font-extrabold text-white mt-2">0 - 0</div>
+          <div id="stat-win-percent" class="text-[11px] text-cyan-400 mt-1">0% Winrate</div>
+        </div>
+      </div>
+
+      <!-- Rating Progression Visualization (HTML5 Canvas Chart) -->
+      <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+              <i data-lucide="trending-up" class="w-5 h-5 text-cyan-400"></i>
+              Rating Evolution (Seconds Ao5 over Matches)
+            </h3>
+            <p class="text-xs text-slate-400">Lower is faster. Shows your dynamic rating curve after every match.</p>
+          </div>
+          <span class="text-xs px-2.5 py-1 rounded bg-slate-900 border border-slate-700 text-slate-400 font-mono">WCA Ao5 Trimmed</span>
+        </div>
+        <div class="w-full h-64 relative bg-slate-900/80 rounded-xl border border-slate-800/80 p-2">
+          <canvas id="ratingChart" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Matches Table History -->
+      <div class="bg-arena-800 border border-slate-700/80 rounded-2xl p-6 shadow-xl">
+        <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+          <i data-lucide="history" class="w-5 h-5 text-cyan-400"></i>
+          Match History Log
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs sm:text-sm text-left">
+            <thead>
+              <tr class="text-slate-400 border-b border-slate-700 pb-2">
+                <th class="py-2.5 px-3">Date</th>
+                <th class="py-2.5 px-3">Opponent</th>
+                <th class="py-2.5 px-3">Your Ao5</th>
+                <th class="py-2.5 px-3">Opponent Ao5</th>
+                <th class="py-2.5 px-3">Result</th>
+                <th class="py-2.5 px-3">Rating After</th>
+              </tr>
+            </thead>
+            <tbody id="matches-history-tbody" class="divide-y divide-slate-800 font-mono">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- VIEW 5: USER / ADMIN PROFILE & RE-CALIBRATION -->
+    <section id="view-profile" class="hidden max-w-xl mx-auto my-auto py-8">
+      <div class="bg-arena-800/90 border border-slate-700/80 rounded-2xl p-7 shadow-2xl">
+        <div class="flex items-center space-x-4 mb-6 pb-6 border-b border-slate-700">
+          <div class="w-16 h-16 rounded-2xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 text-2xl font-bold">
+            <i data-lucide="user" class="w-8 h-8"></i>
+          </div>
+          <div>
+            <h3 id="profile-card-username" class="text-xl font-bold text-white">SpeedCuber</h3>
+            <span id="profile-role-badge" class="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">Cuber</span>
+            <p class="text-xs text-slate-400 mt-1">Session active with local persistence</p>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Manual Tier / Rating Calibration</label>
+            <p class="text-xs text-slate-500 mb-3">If you've improved or want to reset baseline matchmaking difficulty:</p>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="recalibrateTier(8.5, 'Sub-10')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-10 (8.5s)</button>
+              <button onclick="recalibrateTier(16.5, 'Sub-20')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-20 (16.5s)</button>
+              <button onclick="recalibrateTier(26.0, 'Sub-30')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-30 (26.0s)</button>
+              <button onclick="recalibrateTier(36.0, 'Sub-40')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-40 (36.0s)</button>
+              <button onclick="recalibrateTier(46.0, 'Sub-50')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-50 (46.0s)</button>
+              <button onclick="recalibrateTier(56.0, 'Sub-60+')" class="px-3 py-2 text-xs font-bold rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-white transition">Sub-60+ (56.0s)</button>
+            </div>
+          </div>
+
+          <!-- Quick Return to Lobby from Profile -->
+          <button onclick="navigateTab('lobby')" class="w-full py-3 bg-cyan-950/70 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-bold rounded-xl transition flex items-center justify-center gap-2">
+            <i data-lucide="layout-grid" class="w-4 h-4"></i> Go to Match Lobby
+          </button>
+
+          <!-- Admin Controls (Unlocked for Admin account) -->
+          <div id="admin-special-panel" class="hidden bg-slate-900/90 border border-purple-800/50 p-4 rounded-xl">
+            <div class="flex items-center gap-2 text-purple-400 text-xs font-bold uppercase tracking-wider mb-2">
+              <i data-lucide="crown" class="w-4 h-4"></i> Admin Tools
+            </div>
+            <p class="text-xs text-slate-400 mb-3">You are authenticated as Admin. You can purge local database records or test rating presets.</p>
+            <div class="flex gap-2">
+              <button onclick="adminResetAllData()" class="px-3 py-2 bg-rose-950 hover:bg-rose-900 border border-rose-700 text-rose-200 text-xs font-bold rounded-lg transition">Clear All Matches</button>
+              <button onclick="adminSimulateTestMatches()" class="px-3 py-2 bg-purple-950 hover:bg-purple-900 border border-purple-700 text-purple-200 text-xs font-bold rounded-lg transition">+5 Test Matches</button>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-slate-700 flex justify-between">
+            <button onclick="logout()" class="px-4 py-2.5 bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 text-xs font-bold rounded-xl transition flex items-center gap-2">
+              <i data-lucide="log-out" class="w-4 h-4"></i> Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- NOTIFICATION TOAST -->
+  <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-arena-800 border border-slate-700 px-4 py-3 rounded-xl shadow-2xl text-xs flex items-center gap-3">
+    <i id="toast-icon" data-lucide="info" class="w-4 h-4 text-cyan-400"></i>
+    <span id="toast-msg" class="text-slate-200 font-medium">Notification message</span>
+  </div>
+
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <script>
+    /* ========================================================================
+       1. DATA STRUCTURES & LOCAL STORAGE MANAGERS
+       ======================================================================== */
+    const DB_USERS_KEY = 'cubeclash_users_db_v3';
+    const CURRENT_USER_KEY = 'cubeclash_active_user_v3';
+
+    // State container
+    let currentUser = null;
+    let selectedOpponentTier = "AUTO";
+    let isRegisterMode = false;
+
+    // Match Engine State
+    let currentMatch = null;
+    let currentScramble = "";
+    
+    // Timer Variables
+    let timerState = 'IDLE';
+    let timerStartTime = 0;
+    let timerInterval = null;
+    let holdTimeout = null;
+    let inspectionTime = 15;
+    let inspectionInterval = null;
+
+    function getStoredUsers() {
+      try {
+        const data = localStorage.getItem(DB_USERS_KEY);
+        if (data) return JSON.parse(data);
+      } catch (e) {
+        console.error("Storage error:", e);
+      }
+      // Seed default admin account
+      const defaults = {
+        "admin": {
+          username: "admin",
+          password: "adminpassword",
+          isAdmin: true,
+          tier: "Sub-20",
+          rating: 18.5,
+          bestSingle: 14.2,
+          bestAo5: 17.8,
+          matchesWon: 8,
+          matchesLost: 2,
+          history: [
+            { date: "Oct 28, 2026", opponent: "Moyu_Ace", userAo5: 18.2, oppAo5: 19.4, result: "WIN", ratingAfter: 18.5 }
+          ]
+        }
+      };
+      saveUsers(defaults);
+      return defaults;
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
+    }
+
+    function getActiveSession() {
+      try {
+        const raw = localStorage.getItem(CURRENT_USER_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        const users = getStoredUsers();
+        return users[parsed.username] || parsed;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveCurrentUserData() {
+      if (!currentUser) return;
+      const users = getStoredUsers();
+      users[currentUser.username] = currentUser;
+      saveUsers(users);
+      localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+    }
+
+    /* ========================================================================
+       2. AUTHENTICATION (USERNAME / PASSWORD + ADMIN)
+       ======================================================================== */
+    function toggleAuthMode() {
+      isRegisterMode = !isRegisterMode;
+      const title = document.getElementById('auth-title');
+      const subtitle = document.getElementById('auth-subtitle');
+      const btnLabel = document.getElementById('auth-btn-label');
+      const togglePrompt = document.getElementById('auth-toggle-prompt');
+      const toggleBtn = document.getElementById('auth-toggle-btn');
+
+      if (isRegisterMode) {
+        title.textContent = "Create CubeClash Account";
+        subtitle.textContent = "Join the arena and calibrate your baseline skill tier";
+        btnLabel.textContent = "Register & Continue";
+        togglePrompt.textContent = "Already have an account?";
+        toggleBtn.textContent = "Sign In Instead";
+      } else {
+        title.textContent = "Sign In to CubeClash";
+        subtitle.textContent = "Enter your username and password to access ranked matchmaking";
+        btnLabel.textContent = "Sign In";
+        togglePrompt.textContent = "Don't have an account?";
+        toggleBtn.textContent = "Create Account";
+      }
+    }
+
+    function handleAuthSubmit(e) {
+      e.preventDefault();
+      const usernameInput = document.getElementById('auth-username').value.trim();
+      const passwordInput = document.getElementById('auth-password').value.trim();
+
+      if (!usernameInput || !passwordInput) {
+        showToast("Please enter both username and password.");
+        return;
+      }
+
+      const users = getStoredUsers();
+
+      if (isRegisterMode) {
+        if (users[usernameInput]) {
+          showToast("Username already exists. Please pick another or sign in.");
+          return;
+        }
+
+        currentUser = {
+          username: usernameInput,
+          password: passwordInput,
+          isAdmin: false,
+          tier: null,
+          rating: 25.0,
+          bestSingle: null,
+          bestAo5: null,
+          matchesWon: 0,
+          matchesLost: 0,
+          history: []
+        };
+
+        users[usernameInput] = currentUser;
+        saveUsers(users);
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+        showToast(`Account created for ${usernameInput}!`);
+        showView('onboarding');
+      } else {
+        const user = users[usernameInput];
+        if (!user || user.password !== passwordInput) {
+          showToast("Invalid username or password.");
+          return;
+        }
+
+        currentUser = user;
+        localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(currentUser));
+        showToast(`Welcome back, ${currentUser.username}!`);
+        updateNavbarAndProfile();
+
+        if (!currentUser.tier) {
+          showView('onboarding');
+        } else {
+          showView('lobby');
+        }
+      }
+    }
+
+    function selectInitialTier(seconds, tierName) {
+      if (!currentUser) return;
+      currentUser.tier = tierName;
+      currentUser.rating = seconds;
+      saveCurrentUserData();
+      showToast(`Skill tier calibrated: ${tierName} (~${seconds.toFixed(2)}s)`);
+      updateNavbarAndProfile();
+      showView('lobby');
+    }
+
+    function recalibrateTier(seconds, tierName) {
+      if (!currentUser) return;
+      currentUser.tier = tierName;
+      currentUser.rating = seconds;
+      saveCurrentUserData();
+      showToast(`Tier updated to ${tierName} (${seconds.toFixed(2)}s)`);
+      updateNavbarAndProfile();
+    }
+
+    function handleMatchTierChange(val) {
+      selectedOpponentTier = val;
+      updateLobbyUI();
+    }
+
+    function logout() {
+      localStorage.removeItem(CURRENT_USER_KEY);
+      currentUser = null;
+      document.getElementById('nav-tabs').classList.add('hidden');
+      updateNavbarAndProfile();
+      showView('auth');
+      showToast("Signed out successfully.");
+    }
+
+    function adminResetAllData() {
+      if (!currentUser || !currentUser.isAdmin) return;
+      currentUser.history = [];
+      currentUser.matchesWon = 0;
+      currentUser.matchesLost = 0;
+      currentUser.bestSingle = null;
+      currentUser.bestAo5 = null;
+      saveCurrentUserData();
+      updateNavbarAndProfile();
+      renderStatsAndHistory();
+      showToast("Admin: All user match history cleared.");
+    }
+
+    function adminSimulateTestMatches() {
+      if (!currentUser || !currentUser.isAdmin) return;
+      for (let i = 0; i < 5; i++) {
+        const oppAo5 = parseFloat((15 + Math.random() * 8).toFixed(2));
+        const userAo5 = parseFloat((currentUser.rating + (Math.random() * 3 - 1.5)).toFixed(2));
+        const win = userAo5 < oppAo5;
+        if (win) currentUser.matchesWon++;
+        else currentUser.matchesLost++;
+
+        if (!currentUser.bestSingle || userAo5 - 2 < currentUser.bestSingle) {
+          currentUser.bestSingle = parseFloat((userAo5 - 2).toFixed(2));
+        }
+        if (!currentUser.bestAo5 || userAo5 < currentUser.bestAo5) {
+          currentUser.bestAo5 = userAo5;
+        }
+
+        currentUser.rating = parseFloat(((currentUser.rating + userAo5) / 2).toFixed(2));
+        currentUser.history.unshift({
+          date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+          opponent: "TestBot_" + (i + 1),
+          userAo5: userAo5,
+          oppAo5: oppAo5,
+          result: win ? "WIN" : "LOSS",
+          ratingAfter: currentUser.rating
+        });
+      }
+      saveCurrentUserData();
+      updateNavbarAndProfile();
+      renderStatsAndHistory();
+      showToast("Admin: 5 simulated test matches injected.");
+    }
+
+    /* ========================================================================
+       3. WCA SCRAMBLE GENERATOR (Official 3x3 Algorithm Simulation)
+       ======================================================================== */
+    const MOVES = ["U", "D", "L", "R", "F", "B"];
+    const MODIFIERS = ["", "'", "2"];
+    const OPPOSITE_AXIS = {
+      "U": "D", "D": "U",
+      "L": "R", "R": "L",
+      "F": "B", "B": "F"
+    };
+
+    function generateWCAScramble(length = 20) {
+      let scramble = [];
+      let lastMove = "";
+      let secondLastMove = "";
+
+      for (let i = 0; i < length; i++) {
+        let candidates = MOVES.filter(m => {
+          if (m === lastMove) return false;
+          if (m === OPPOSITE_AXIS[lastMove] && m === secondLastMove) return false;
+          return true;
+        });
+        
+        let move = candidates[Math.floor(Math.random() * candidates.length)];
+        let modifier = MODIFIERS[Math.floor(Math.random() * MODIFIERS.length)];
+        
+        scramble.push(move + modifier);
+        secondLastMove = lastMove;
+        lastMove = move;
+      }
+      return scramble.join(" ");
+    }
+
+    /* ========================================================================
+       4. NAVIGATION & VIEW SWITCHING
+       ======================================================================== */
+    function showView(viewName) {
+      const views = ['auth', 'onboarding', 'lobby', 'arena', 'stats', 'profile'];
+      views.forEach(v => {
+        const el = document.getElementById(`view-${v}`);
+        if (el) el.classList.add('hidden');
+      });
+
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      // Update nav button active states
+      ['lobby', 'arena', 'stats', 'profile'].forEach(tab => {
+        const btn = document.getElementById(`nav-btn-${tab}`);
+        if (!btn) return;
+        if (tab === viewName) {
+          btn.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-cyan-400 bg-slate-800 shadow-sm";
+        } else {
+          btn.className = "px-4 py-2 text-sm font-semibold rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white";
+        }
+      });
+
+      if (viewName === 'lobby') {
+        updateLobbyUI();
+      } else if (viewName === 'stats') {
+        renderStatsAndHistory();
+      }
+    }
+
+    function navigateTab(tabName) {
+      if (!currentUser) {
+        showView('auth');
+        return;
+      }
+      showView(tabName);
+    }
+
+    function updateLobbyUI() {
+      if (!currentUser) return;
+
+      const avatarEl = document.getElementById('lobby-avatar');
+      const nameEl = document.getElementById('lobby-cuber-name');
+      const badgeEl = document.getElementById('lobby-tier-badge');
+      const ratingLine = document.getElementById('lobby-rating-line');
+      const statsLine = document.getElementById('lobby-stats-line');
+      const acctType = document.getElementById('lobby-account-type');
+
+      avatarEl.innerHTML = `<i data-lucide="award" class="w-10 h-10"></i>`;
+      avatarEl.className = "w-20 h-20 rounded-2xl bg-cyan-950 border-2 border-cyan-500/40 flex items-center justify-center text-cyan-400 text-3xl font-extrabold shadow-inner";
+      nameEl.textContent = currentUser.username || "Cuber";
+      badgeEl.textContent = currentUser.tier || 'Ranked';
+      badgeEl.className = "px-3 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-xs font-bold uppercase tracking-wider";
+      ratingLine.innerHTML = `Current Rated Average: <span id="lobby-current-rating" class="font-mono font-bold text-cyan-400 text-base">${currentUser.rating.toFixed(2)}s</span>`;
+      statsLine.innerHTML = `
+        <span>Wins: <strong id="lobby-wins" class="text-emerald-400">${currentUser.matchesWon || 0}</strong></span>
+        <span>Losses: <strong id="lobby-losses" class="text-rose-400">${currentUser.matchesLost || 0}</strong></span>
+        <span>Best Ao5: <strong id="lobby-best-ao5" class="text-teal-300">${currentUser.bestAo5 ? currentUser.bestAo5.toFixed(2) + 's' : '--'}</strong></span>
+      `;
+
+      acctType.textContent = currentUser.isAdmin ? "Administrator" : "Cuber Account";
+      acctType.className = currentUser.isAdmin ? "font-mono font-bold text-purple-400" : "font-mono font-bold text-cyan-400";
+
+      // Calculate target range based on choice
+      if (selectedOpponentTier === "AUTO") {
+        const lowRange = Math.max(7.0, currentUser.rating - 1.2).toFixed(1);
+        const highRange = (currentUser.rating + 1.2).toFixed(1);
+        document.getElementById('lobby-target-range').textContent = `${lowRange}s - ${highRange}s`;
+      } else if (selectedOpponentTier === "RANDOM") {
+        document.getElementById('lobby-target-range').textContent = "Random (Sub 10-60+)";
+      } else {
+        document.getElementById('lobby-target-range').textContent = `${selectedOpponentTier} Tier`;
+      }
+
+      document.getElementById('lobby-best-single').textContent = currentUser.bestSingle ? `${currentUser.bestSingle.toFixed(2)}s` : '--';
+      const total = (currentUser.matchesWon + currentUser.matchesLost) || 0;
+      const pct = total > 0 ? Math.round((currentUser.matchesWon / total) * 100) : 0;
+      document.getElementById('lobby-winrate').textContent = `${pct}% (${total} played)`;
+
+      lucide.createIcons();
+    }
+
+    function updateNavbarAndProfile() {
+      const headerArea = document.getElementById('user-header-profile');
+      const navTabs = document.getElementById('nav-tabs');
+
+      if (!currentUser) {
+        navTabs.classList.add('hidden');
+        headerArea.innerHTML = `
+          <button onclick="showView('auth')" class="text-xs text-slate-300 hover:text-white bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+            Sign In
+          </button>
+        `;
+        return;
+      }
+
+      navTabs.classList.remove('hidden');
+
+      headerArea.innerHTML = `
+        <div class="flex items-center space-x-2">
+          <button onclick="startNewMatch()" class="hidden sm:inline-flex px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 text-xs font-bold rounded-lg shadow hover:opacity-90 transition items-center gap-1.5">
+            <i data-lucide="play" class="w-3.5 h-3.5 fill-current"></i> Play
+          </button>
+          <div class="text-right hidden sm:block">
+            <span class="block text-xs font-bold text-white">${currentUser.username || 'Cuber'}</span>
+            <span class="block text-[10px] text-cyan-400 font-mono">
+              ${currentUser.rating.toFixed(2)}s (${currentUser.tier || 'Ranked'})
+            </span>
+          </div>
+          <button onclick="navigateTab('profile')" class="w-9 h-9 rounded-xl bg-cyan-950 border border-cyan-700/60 text-cyan-400 flex items-center justify-center text-sm font-bold transition">
+            ${currentUser.username ? currentUser.username.substring(0, 1).toUpperCase() : 'U'}
+          </button>
+        </div>
+      `;
+
+      // Update Arena Lobby pills
+      const ratingDisp = document.getElementById('user-display-rating');
+      const tierPill = document.getElementById('user-tier-pill');
+      if (ratingDisp) ratingDisp.textContent = `${currentUser.rating.toFixed(2)}s`;
+      if (tierPill) tierPill.textContent = currentUser.tier || 'Ranked';
+
+      // Update Profile screen details
+      const profileName = document.getElementById('profile-card-username');
+      const profileRole = document.getElementById('profile-role-badge');
+      const adminPanel = document.getElementById('admin-special-panel');
+      
+      if (profileName) profileName.textContent = currentUser.username || "SpeedCuber";
+      if (profileRole) {
+        profileRole.textContent = currentUser.isAdmin ? "ADMINISTRATOR" : "VERIFIED CUBER";
+        profileRole.className = currentUser.isAdmin
+          ? "text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800"
+          : "text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800";
+      }
+
+      if (adminPanel) {
+        if (currentUser.isAdmin) adminPanel.classList.remove('hidden');
+        else adminPanel.classList.add('hidden');
+      }
+
+      updateLobbyUI();
+      lucide.createIcons();
+    }
+
+    /* ========================================================================
+       5. SPEEDCUBING TIMER & STACKMAT CONTROLS
+       ======================================================================== */
+    const timerDisplay = document.getElementById('timer-display');
+    const timerPrompt = document.getElementById('timer-prompt-text');
+    const inspectionBanner = document.getElementById('inspection-state-banner');
+    const timerArenaCard = document.getElementById('timer-arena-card');
+
+    function formatTime(ms) {
+      const totalSec = ms / 1000;
+      return totalSec.toFixed(2);
+    }
+
+    function updateTimerUI(text, colorClass = "text-white") {
+      timerDisplay.textContent = text;
+      timerDisplay.className = `timer-font text-6xl sm:text-8xl md:text-9xl font-extrabold tracking-tight transition-colors ${colorClass}`;
+    }
+
+    function startInspection() {
+      timerState = 'INSPECTION';
+      inspectionTime = 15;
+      inspectionBanner.classList.remove('hidden');
+      updateTimerUI(inspectionTime.toString(), "text-amber-400");
+      timerPrompt.innerHTML = `<i data-lucide="eye" class="w-4 h-4 text-amber-400"></i><span>Inspection: Hold to arm timer before 15s</span>`;
+      lucide.createIcons();
+
+      if (inspectionInterval) clearInterval(inspectionInterval);
+      inspectionInterval = setInterval(() => {
+        inspectionTime--;
+        if (inspectionTime > 0) {
+          updateTimerUI(inspectionTime.toString(), "text-amber-400");
+        } else {
+          clearInterval(inspectionInterval);
+          updateTimerUI("+2", "text-rose-500");
+        }
+      }, 1000);
+    }
+
+    function triggerHoldStart() {
+      if (timerState === 'RUNNING') {
+        stopSolveTimer();
+        return;
+      }
+      if (timerState === 'HOLDING' || timerState === 'READY') return;
+
+      timerState = 'HOLDING';
+      updateTimerUI(timerDisplay.textContent, "text-rose-400");
+      timerPrompt.innerHTML = `<i data-lucide="loader" class="w-4 h-4 text-rose-400 animate-spin"></i><span>Keep holding...</span>`;
+      lucide.createIcons();
+
+      holdTimeout = setTimeout(() => {
+        if (timerState === 'HOLDING') {
+          timerState = 'READY';
+          if (inspectionInterval) clearInterval(inspectionInterval);
+          inspectionBanner.classList.add('hidden');
+          updateTimerUI("0.00", "text-emerald-400");
+          timerArenaCard.classList.add('glow-green');
+          timerPrompt.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i><span class="text-emerald-300 font-bold">RELEASE TO START SOLVE!</span>`;
+          lucide.createIcons();
+        }
+      }, 350);
+    }
+
+    function triggerRelease() {
+      if (timerState === 'HOLDING') {
+        clearTimeout(holdTimeout);
+        timerState = 'IDLE';
+        timerArenaCard.classList.remove('glow-green');
+        updateTimerUI("00.00", "text-white");
+        timerPrompt.innerHTML = `<i data-lucide="mouse-pointer" class="w-4 h-4 text-cyan-400"></i><span>Hold at least 0.35s until green</span>`;
+        lucide.createIcons();
+      } else if (timerState === 'READY') {
+        clearTimeout(holdTimeout);
+        startSolveTimer();
+      }
+    }
+
+    function startSolveTimer() {
+      timerState = 'RUNNING';
+      timerArenaCard.classList.remove('glow-green');
+      timerArenaCard.classList.add('glow-cyan');
+      timerStartTime = performance.now();
+      timerPrompt.innerHTML = `<i data-lucide="zap" class="w-4 h-4 text-cyan-400 animate-bounce"></i><span class="text-cyan-300 font-bold">SOLVING! Spacebar / Tap when finished</span>`;
+      lucide.createIcons();
+
+      timerInterval = setInterval(() => {
+        const elapsed = performance.now() - timerStartTime;
+        timerDisplay.textContent = formatTime(elapsed);
+      }, 10);
+
+      simulateOpponentSolveLive();
+    }
+
+    function stopSolveTimer() {
+      if (timerState !== 'RUNNING') return;
+      clearInterval(timerInterval);
+      const elapsed = performance.now() - timerStartTime;
+      const finalSolveSec = parseFloat((elapsed / 1000).toFixed(2));
+      
+      timerState = 'STOPPED';
+      timerArenaCard.classList.remove('glow-cyan');
+      updateTimerUI(finalSolveSec.toFixed(2), "text-emerald-400");
+      timerPrompt.innerHTML = `<i data-lucide="check" class="w-4 h-4 text-emerald-400"></i><span class="text-emerald-300 font-bold">SOLVE COMPLETE: ${finalSolveSec.toFixed(2)}s</span>`;
+      lucide.createIcons();
+
+      handleUserSolveFinished(finalSolveSec);
+    }
+
+    // Key listeners (Spacebar & Enter)
+    window.addEventListener('keydown', (e) => {
+      const resultsModal = document.getElementById('match-results-modal');
+      if (resultsModal && !resultsModal.classList.contains('hidden')) {
+        if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          closeMatchResultAndRematch();
+          return;
+        }
+      }
+
+      if (e.code === 'Space' && !e.repeat && document.getElementById('active-match-container').offsetParent !== null) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        e.preventDefault();
+
+        if (timerState === 'RUNNING') {
+          stopSolveTimer();
+        } else if (timerState === 'IDLE') {
+          const inspectionOn = document.getElementById('inspection-toggle').checked;
+          if (inspectionOn) {
+            startInspection();
+          } else {
+            triggerHoldStart();
+          }
+        } else if (timerState === 'INSPECTION') {
+          triggerHoldStart();
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.code === 'Space' && (timerState === 'HOLDING' || timerState === 'READY')) {
+        e.preventDefault();
+        triggerRelease();
+      }
+    });
+
+    timerArenaCard.addEventListener('pointerdown', (e) => {
+      if (timerState === 'RUNNING') {
+        stopSolveTimer();
+      } else if (timerState === 'IDLE') {
+        const inspectionOn = document.getElementById('inspection-toggle').checked;
+        if (inspectionOn) {
+          startInspection();
+        } else {
+          triggerHoldStart();
+        }
+      } else if (timerState === 'INSPECTION') {
+        triggerHoldStart();
+      }
+    });
+
+    timerArenaCard.addEventListener('pointerup', () => {
+      if (timerState === 'HOLDING' || timerState === 'READY') {
+        triggerRelease();
+      }
+    });
+
+    timerArenaCard.addEventListener('pointercancel', () => {
+      if (timerState === 'HOLDING' || timerState === 'READY') {
+        triggerRelease();
+      }
+    });
+
+    /* ========================================================================
+       6. MATCH ENGINE & OPPONENT SELECTION (RANKED VS GUEST RANDOM)
+       ======================================================================== */
+    const OPPONENT_NAMES = [
+      "Felix_Ghost", "Sub12Pro", "ValkRider", "Moyu_Ace", "GanSpeed", 
+      "CornerCutter", "CFOP_God", "RouxMaster", "PLL_Skip", "OLL_Hammer",
+      "MysteryCuber", "WildCard_3x3", "SpeedDemon", "BeginnerBob", "CubeTitan"
+    ];
+
+    const TIER_BASE_MAP = {
+      "Sub-10": 8.5,
+      "Sub-20": 16.5,
+      "Sub-30": 26.0,
+      "Sub-40": 36.0,
+      "Sub-50": 46.0,
+      "Sub-60+": 56.0
+    };
+
+    function startNewMatch() {
+      if (!currentUser) return;
+
+      closeMatchModal();
+      showView('arena');
+
+      let oppRating;
+      let oppName = OPPONENT_NAMES[Math.floor(Math.random() * OPPONENT_NAMES.length)];
+
+      if (selectedOpponentTier === "AUTO") {
+        const variance = (Math.random() * 2.4 - 1.2);
+        oppRating = Math.max(7.5, parseFloat((currentUser.rating + variance).toFixed(2)));
+      } else if (selectedOpponentTier === "RANDOM") {
+        oppRating = parseFloat((7.5 + Math.random() * 52.5).toFixed(2));
+      } else {
+        const base = TIER_BASE_MAP[selectedOpponentTier] || 25.0;
+        const variance = (Math.random() * 2.0 - 1.0);
+        oppRating = Math.max(7.5, parseFloat((base + variance).toFixed(2)));
+      }
+
+      currentMatch = {
+        opponent: {
+          name: oppName,
+          rating: oppRating,
+          solves: [],
+          ao5: null
+        },
+        userSolves: [],
+        userAo5: null,
+        currentSolveIndex: 1
+      };
+
+      document.getElementById('matchmaking-panel').classList.add('hidden');
+      document.getElementById('active-match-container').classList.remove('hidden');
+
+      document.getElementById('player-hud-name').textContent = currentUser.username || 'You';
+      document.getElementById('player-hud-tag').textContent = `Rating: ${currentUser.rating.toFixed(2)}s`;
+      document.getElementById('opponent-hud-name').textContent = oppName;
+      document.getElementById('opponent-hud-tag').textContent = `Rating: ${oppRating.toFixed(2)}s`;
+      
+      document.getElementById('player-current-ao5').textContent = "--";
+      document.getElementById('opponent-current-ao5').textContent = "--";
+
+      renderSolvePills();
+      prepareSolveRound(1);
+    }
+
+    function renderSolvePills() {
+      const uContainer = document.getElementById('player-solve-pills');
+      const oContainer = document.getElementById('opponent-solve-pills');
+      uContainer.innerHTML = '';
+      oContainer.innerHTML = '';
+
+      for (let i = 0; i < 5; i++) {
+        const uSolve = currentMatch.userSolves[i];
+        const oSolve = currentMatch.opponent.solves[i];
+
+        uContainer.innerHTML += `
+          <div class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-mono font-bold ${
+            uSolve ? 'bg-cyan-500 text-slate-950' : 'bg-slate-900 text-slate-500 border border-slate-700'
+          }">${uSolve ? (i + 1) : '-'}</div>
+        `;
+
+        oContainer.innerHTML += `
+          <div class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-mono font-bold ${
+            oSolve ? 'bg-rose-500 text-white' : 'bg-slate-900 text-slate-500 border border-slate-700'
+          }">${oSolve ? (i + 1) : '-'}</div>
+        `;
+      }
+    }
+
+    function prepareSolveRound(solveNum) {
+      currentMatch.currentSolveIndex = solveNum;
+      document.getElementById('current-solve-index').textContent = solveNum;
+      
+      currentScramble = generateWCAScramble(20);
+      document.getElementById('scramble-display').textContent = currentScramble;
+
+      timerState = 'IDLE';
+      clearInterval(timerInterval);
+      clearInterval(inspectionInterval);
+      inspectionBanner.classList.add('hidden');
+      updateTimerUI("00.00", "text-white");
+      timerPrompt.innerHTML = `<i data-lucide="mouse-pointer" class="w-4 h-4 text-cyan-400"></i><span>Hold <strong class="text-white">SPACEBAR</strong> or <strong class="text-white">Touch Pad</strong> to Arm Solve #${solveNum}</span>`;
+      
+      document.getElementById('opponent-live-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Waiting for solve release`;
+      lucide.createIcons();
+    }
+
+    function generateNextSolveScramble() {
+      currentScramble = generateWCAScramble(20);
+      document.getElementById('scramble-display').textContent = currentScramble;
+    }
+
+    let opponentSimTimeout = null;
+    let oppSolveDone = false;
+    let pendingOpponentSolve = 0;
+
+    function simulateOpponentSolveLive() {
+      oppSolveDone = false;
+      document.getElementById('opponent-live-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span> Opponent solving...`;
+      
+      const variance = (Math.random() - 0.48) * (currentMatch.opponent.rating * 0.22);
+      pendingOpponentSolve = Math.max(6.2, parseFloat((currentMatch.opponent.rating + variance).toFixed(2)));
+
+      if (opponentSimTimeout) clearTimeout(opponentSimTimeout);
+      const delayMs = pendingOpponentSolve * 1000;
+
+      opponentSimTimeout = setTimeout(() => {
+        oppSolveDone = true;
+        document.getElementById('opponent-live-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> Opponent finished: <strong class="font-mono text-rose-400">${pendingOpponentSolve.toFixed(2)}s</strong>`;
+        if (timerState === 'STOPPED') {
+          commitRoundResults();
+        }
+      }, delayMs);
+    }
+
+    function handleUserSolveFinished(userTime) {
+      if (oppSolveDone) {
+        commitRoundResults();
+      } else {
+        document.getElementById('opponent-live-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-spin"></span> Waiting for rival to finish...`;
+        clearTimeout(opponentSimTimeout);
+        opponentSimTimeout = setTimeout(() => {
+          oppSolveDone = true;
+          document.getElementById('opponent-live-status').innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> Opponent finished: <strong class="font-mono text-rose-400">${pendingOpponentSolve.toFixed(2)}s</strong>`;
+          commitRoundResults();
+        }, Math.min(1000, 1500));
+      }
+    }
+
+    function commitRoundResults() {
+      const uSolve = parseFloat(timerDisplay.textContent);
+      const oSolve = pendingOpponentSolve;
+
+      currentMatch.userSolves.push(uSolve);
+      currentMatch.opponent.solves.push(oSolve);
+
+      renderSolvePills();
+      updateRoundHistoryTable();
+
+      if (!currentUser.bestSingle || uSolve < currentUser.bestSingle) {
+        currentUser.bestSingle = uSolve;
+        showToast(`🔥 NEW PERSONAL BEST SINGLE: ${uSolve.toFixed(2)}s!`);
+      }
+
+      if (currentMatch.userSolves.length === 5) {
+        finalizeMatch();
+      } else {
+        setTimeout(() => {
+          prepareSolveRound(currentMatch.userSolves.length + 1);
+        }, 1200);
+      }
+    }
+
+    function updateRoundHistoryTable() {
+      const tbody = document.getElementById('round-history-body');
+      tbody.innerHTML = '';
+
+      for (let i = 0; i < currentMatch.userSolves.length; i++) {
+        const u = currentMatch.userSolves[i];
+        const o = currentMatch.opponent.solves[i];
+        const diff = (u - o).toFixed(2);
+        const userWon = u < o;
+        const tie = u === o;
+
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-900/40">
+            <td class="py-2.5 px-3 text-slate-300 font-semibold font-sans">#${i + 1}</td>
+            <td class="py-2.5 px-3 font-bold text-cyan-400">${u.toFixed(2)}s</td>
+            <td class="py-2.5 px-3 text-rose-400">${o.toFixed(2)}s</td>
+            <td class="py-2.5 px-3 ${userWon ? 'text-emerald-400' : 'text-rose-400'}">
+              ${userWon ? '-' + Math.abs(diff) + 's' : '+' + Math.abs(diff) + 's'}
+            </td>
+            <td class="py-2.5 px-3 font-sans font-bold">
+              ${userWon ? '<span class="text-emerald-400">YOU</span>' : tie ? '<span class="text-amber-400">TIE</span>' : '<span class="text-rose-400">' + currentMatch.opponent.name + '</span>'}
+            </td>
+          </tr>
+        `;
+      }
+    }
+
+    /* ========================================================================
+       7. OFFICIAL WCA Ao5 CALCULATION & MATCH CONCLUSION
+       ======================================================================== */
+    function calculateAo5(solves) {
+      if (!solves || solves.length < 5) return null;
+      const sorted = [...solves].sort((a, b) => a - b);
+      const fastest = sorted[0];
+      const slowest = sorted[4];
+      const middleThree = sorted.slice(1, 4);
+      const sum = middleThree.reduce((acc, curr) => acc + curr, 0);
+      const ao5 = parseFloat((sum / 3).toFixed(2));
+
+      return { ao5, fastest, slowest, middleThree };
+    }
+
+    function finalizeMatch() {
+      const uResult = calculateAo5(currentMatch.userSolves);
+      const oResult = calculateAo5(currentMatch.opponent.solves);
+
+      currentMatch.userAo5 = uResult.ao5;
+      currentMatch.opponent.ao5 = oResult.ao5;
+
+      const userWon = uResult.ao5 < oResult.ao5;
+      const isTie = uResult.ao5 === oResult.ao5;
+
+      const prevRating = currentUser.rating;
+      let newRating = prevRating;
+
+      if (userWon) currentUser.matchesWon++;
+      else if (!isTie) currentUser.matchesLost++;
+
+      if (!currentUser.bestAo5 || uResult.ao5 < currentUser.bestAo5) {
+        currentUser.bestAo5 = uResult.ao5;
+      }
+
+      const performanceDelta = uResult.ao5 - prevRating;
+      let ratingAdjustment = performanceDelta * 0.25;
+      if (userWon) ratingAdjustment -= 0.15;
+      else if (!isTie) ratingAdjustment += 0.15;
+
+      newRating = Math.max(7.0, parseFloat((prevRating + ratingAdjustment).toFixed(2)));
+      currentUser.rating = newRating;
+
+      const matchLog = {
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        opponent: currentMatch.opponent.name,
+        userAo5: uResult.ao5,
+        oppAo5: oResult.ao5,
+        result: userWon ? 'WIN' : isTie ? 'DRAW' : 'LOSS',
+        ratingAfter: newRating
+      };
+      currentUser.history.unshift(matchLog);
+      saveCurrentUserData();
+
+      updateNavbarAndProfile();
+      displayResultsModal(userWon, isTie, uResult, oResult, prevRating, newRating);
+    }
+
+    function displayResultsModal(userWon, isTie, uResult, oResult, prevRating, newRating) {
+      const modal = document.getElementById('match-results-modal');
+      const icon = document.getElementById('result-icon-container');
+      const headline = document.getElementById('result-headline');
+
+      if (userWon) {
+        icon.textContent = "🏆";
+        icon.className = "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 glow-green";
+        headline.textContent = "VICTORY!";
+        headline.className = "text-3xl font-extrabold text-emerald-400 tracking-tight";
+        confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      } else if (isTie) {
+        icon.textContent = "⚖️";
+        icon.className = "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-lg bg-amber-500/20 text-amber-400 border border-amber-500/40";
+        headline.textContent = "DEAD HEAT DRAW!";
+        headline.className = "text-3xl font-extrabold text-amber-400 tracking-tight";
+      } else {
+        icon.textContent = "💀";
+        icon.className = "w-16 h-16 mx-auto rounded-2xl flex items-center justify-center text-3xl mb-3 shadow-lg bg-rose-500/20 text-rose-400 border border-rose-500/40 glow-red";
+        headline.textContent = "DEFEAT";
+        headline.className = "text-3xl font-extrabold text-rose-500 tracking-tight";
+      }
+
+      document.getElementById('result-user-ao5').textContent = `${uResult.ao5.toFixed(2)}s`;
+      document.getElementById('result-user-best').textContent = `${uResult.fastest.toFixed(2)}s`;
+      document.getElementById('result-user-worst').textContent = `${uResult.slowest.toFixed(2)}s`;
+
+      document.getElementById('result-opponent-ao5').textContent = `${oResult.ao5.toFixed(2)}s`;
+      document.getElementById('result-opp-best').textContent = `${oResult.fastest.toFixed(2)}s`;
+      document.getElementById('result-opp-worst').textContent = `${oResult.slowest.toFixed(2)}s`;
+
+      document.getElementById('rating-prev').textContent = `${prevRating.toFixed(2)}s`;
+      document.getElementById('rating-new').textContent = `${newRating.toFixed(2)}s`;
+      const targetSpan = document.getElementById('rating-next-match-target');
+      if (targetSpan) targetSpan.textContent = `${newRating.toFixed(2)}s`;
+
+      const delta = (newRating - prevRating).toFixed(2);
+      const deltaPill = document.getElementById('rating-delta-pill');
+      if (delta < 0) {
+        deltaPill.textContent = `${delta}s (Faster 🔥)`;
+        deltaPill.className = "text-xs px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-700 font-mono font-bold";
+      } else if (delta > 0) {
+        deltaPill.textContent = `+${delta}s (Slower)`;
+        deltaPill.className = "text-xs px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-700 font-mono font-bold";
+      } else {
+        deltaPill.textContent = "0.00s (Even)";
+        deltaPill.className = "text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 font-mono font-bold";
+      }
+
+      modal.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeMatchModal() {
+      document.getElementById('match-results-modal').classList.add('hidden');
+    }
+
+    function closeMatchResultAndRematch() {
+      closeMatchModal();
+      startNewMatch();
+      showToast(`Starting new 5-solve match!`);
+    }
+
+    /* ========================================================================
+       8. STATS & PROGRESSION
+       ======================================================================== */
+    function renderStatsAndHistory() {
+      if (!currentUser) return;
+
+      const historyTbody = document.getElementById('matches-history-tbody');
+
+      document.getElementById('stat-current-rating').textContent = `${currentUser.rating.toFixed(2)}s`;
+      document.getElementById('stat-pb-single').textContent = currentUser.bestSingle ? `${currentUser.bestSingle.toFixed(2)}s` : '--';
+      document.getElementById('stat-pb-ao5').textContent = currentUser.bestAo5 ? `${currentUser.bestAo5.toFixed(2)}s` : '--';
+      
+      const totalMatches = (currentUser.matchesWon + currentUser.matchesLost) || 0;
+      const winRate = totalMatches > 0 ? Math.round((currentUser.matchesWon / totalMatches) * 100) : 0;
+      document.getElementById('stat-win-loss').textContent = `${currentUser.matchesWon} - ${currentUser.matchesLost}`;
+      document.getElementById('stat-win-percent').textContent = `${winRate}% Win Rate (${totalMatches} Matches)`;
+
+      historyTbody.innerHTML = '';
+      if (!currentUser.history || currentUser.history.length === 0) {
+        historyTbody.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 font-sans">No matches registered yet. Hop into the Arena to compete!</td></tr>`;
+      } else {
+        currentUser.history.slice(0, 15).forEach(m => {
+          const isWin = m.result === 'WIN';
+          const isDraw = m.result === 'DRAW';
+          historyTbody.innerHTML += `
+            <tr class="hover:bg-slate-900/50">
+              <td class="py-2.5 px-3 text-slate-400 font-sans">${m.date}</td>
+              <td class="py-2.5 px-3 font-sans font-medium text-white">${m.opponent}</td>
+              <td class="py-2.5 px-3 font-bold text-cyan-400">${m.userAo5.toFixed(2)}s</td>
+              <td class="py-2.5 px-3 text-rose-400">${m.oppAo5.toFixed(2)}s</td>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold ${
+                  isWin ? 'bg-emerald-950 text-emerald-300 border border-emerald-800' :
+                  isDraw ? 'bg-amber-950 text-amber-300 border border-amber-800' :
+                  'bg-rose-950 text-rose-300 border border-rose-800'
+                }">${m.result}</span>
+              </td>
+              <td class="py-2.5 px-3 font-mono font-bold text-slate-200">${m.ratingAfter.toFixed(2)}s</td>
+            </tr>
+          `;
+        });
+      }
+
+      drawRatingCurveCanvas();
+    }
+
+    function drawRatingCurveCanvas() {
+      const canvas = document.getElementById('ratingChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = rect.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      const historyReversed = [...(currentUser?.history || [])].reverse();
+      let dataPoints = historyReversed.map(h => h.ratingAfter);
+      if (dataPoints.length === 0) dataPoints = [currentUser.rating];
+      else dataPoints.push(currentUser.rating);
+      if (dataPoints.length === 1) dataPoints.unshift(dataPoints[0]);
+
+      const padding = { top: 25, right: 30, bottom: 30, left: 45 };
+      const plotW = width - padding.left - padding.right;
+      const plotH = height - padding.top - padding.bottom;
+
+      const minVal = Math.max(0, Math.min(...dataPoints) - 2);
+      const maxVal = Math.max(...dataPoints) + 2;
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      const gridSteps = 4;
+      for (let i = 0; i <= gridSteps; i++) {
+        const y = padding.top + (plotH / gridSteps) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        const labelVal = maxVal - ((maxVal - minVal) / gridSteps) * i;
+        ctx.fillStyle = '#64748b';
+        ctx.font = '10px ui-monospace, monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(labelVal.toFixed(1) + 's', padding.left - 8, y + 3);
+      }
+
+      const points = dataPoints.map((val, idx) => {
+        const x = padding.left + (plotW / (dataPoints.length - 1)) * idx;
+        const y = padding.top + plotH * (1 - (val - minVal) / (maxVal - minVal));
+        return { x, y, val };
+      });
+
+      const grad = ctx.createLinearGradient(0, padding.top, 0, height - padding.bottom);
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0.35)');
+      grad.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.lineTo(points[points.length - 1].x, height - padding.bottom);
+      ctx.lineTo(points[0].x, height - padding.bottom);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+
+      points.forEach(pt => {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#0a0d14';
+        ctx.fill();
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-msg');
+      msg.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3500);
+    }
+
+    /* ========================================================================
+       9. APP LIFECYCLE INITIALIZATION
+       ======================================================================== */
+    window.addEventListener('load', () => {
+      lucide.createIcons();
+      const session = getActiveSession();
+
+      if (session) {
+        currentUser = session;
+        if (!currentUser.tier) {
+          showView('onboarding');
+        } else {
+          updateNavbarAndProfile();
+          showView('lobby');
+        }
+      } else {
+        showView('auth');
+      }
+    });
+  </script>
+</body>
+</html>
